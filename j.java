@@ -1,0 +1,200 @@
+import java.util.Scanner;
+
+public class CineCampus {
+
+    static Scanner sc = new Scanner(System.in);
+
+    public static void main(String[] args) {
+        int opcion;
+        do {
+            mostrarMenu();
+            opcion = leerEntero("Seleccione una opción: ");
+            switch (opcion) {
+                case 1:
+                    comprarEntradas();
+                    break;
+                case 2:
+                    consultarPrecios();
+                    break;
+                case 3:
+                    System.out.println("\nGracias por visitar Cine Campus. ¡Hasta pronto!");
+                    break;
+                default:
+                    System.out.println("\nOpción inválida. Intente de nuevo.");
+            }
+        } while (opcion != 3);
+
+        sc.close();
+    }
+
+    // ----------------- MENÚ -----------------
+
+    static void mostrarMenu() {
+        System.out.println("\n===== CINE CAMPUS =====");
+        System.out.println("1. Comprar entradas");
+        System.out.println("2. Consultar precios");
+        System.out.println("3. Salir");
+    }
+
+    // ----------------- OPCIÓN 2: CONSULTAR PRECIOS -----------------
+
+    static void consultarPrecios() {
+        System.out.println("\n--- Precios por formato ---");
+        System.out.println("1. 2D   -> $5.00");
+        System.out.println("2. 3D   -> $7.50");
+        System.out.println("3. IMAX -> $10.00");
+
+        System.out.println("\n--- Descuentos por edad ---");
+        System.out.println("Niños (3 a 17 años): 15%");
+        System.out.println("Jóvenes (18 años en adelante): 10%");
+        System.out.println("Tercera edad (65 años en adelante): 30%");
+
+        System.out.println("\n--- Otras promociones ---");
+        System.out.println("Martes: 50% de descuento");
+        System.out.println("Estudiante, día lunes a viernes: 15% de descuento");
+        System.out.println("Miércoles (día 3), si no aplica otra promoción: 10% de descuento");
+        System.out.println("(Se aplica solo la promoción/descuento de mayor porcentaje)");
+
+        System.out.println("\n--- Recargos ---");
+        System.out.println("Sábado o domingo + formato IMAX: 10% de recargo sobre el subtotal");
+
+        System.out.println("\n--- Cortesía ---");
+        System.out.println("4 o más entradas, siendo estudiante o de 17 años o menos: combo pequeño de cortesía");
+    }
+
+    // ----------------- OPCIÓN 1: COMPRAR ENTRADAS -----------------
+
+    static void comprarEntradas() {
+        System.out.println("\n--- Compra de entradas ---");
+
+        // Formato
+        int formato = leerEntero("Formato (1=2D, 2=3D, 3=IMAX): ");
+        if (formato < 1 || formato > 3) {
+            System.out.println("Formato inválido. Operación cancelada.");
+            return;
+        }
+
+        // Edad (R2: validar entre 0 y 120)
+        int edad = leerEntero("Edad del cliente: ");
+        if (edad < 0 || edad > 120) {
+            System.out.println("Edad fuera de rango (0-120). Operación cancelada.");
+            return;
+        }
+
+        // Estudiante
+        String respEstudiante = leerTexto("¿Es estudiante? (S/N): ");
+        boolean estudiante = respEstudiante.trim().equalsIgnoreCase("S");
+
+        // Día (1=Lunes ... 7=Domingo)
+        int dia = leerEntero("Día de la semana (1=Lunes, 2=Martes, ..., 7=Domingo): ");
+        if (dia < 1 || dia > 7) {
+            System.out.println("Día inválido. Operación cancelada.");
+            return;
+        }
+
+        // Cantidad de entradas
+        int cantidad = leerEntero("Cantidad de entradas: ");
+        if (cantidad <= 0) {
+            System.out.println("Cantidad inválida. Operación cancelada.");
+            return;
+        }
+
+        // R1: Precio base según formato
+        double precioUnitario = precioPorFormato(formato);
+        double subtotal = precioUnitario * cantidad;
+
+        // Determinar el mejor descuento aplicable (una sola promoción, la de mayor %)
+        double mejorDescuentoPct = 0;
+        String nombrePromo = "Ninguna";
+
+        // Descuento por edad
+        if (edad >= 65) {
+            if (30 > mejorDescuentoPct) { mejorDescuentoPct = 30; nombrePromo = "Tercera edad (30%)"; }
+        } else if (edad >= 3 && edad <= 17) {
+            if (15 > mejorDescuentoPct) { mejorDescuentoPct = 15; nombrePromo = "Niño (15%)"; }
+        } else if (edad >= 18) {
+            if (10 > mejorDescuentoPct) { mejorDescuentoPct = 10; nombrePromo = "Joven/Adulto (10%)"; }
+        }
+
+        // Promoción de martes
+        if (dia == 2) {
+            if (50 > mejorDescuentoPct) { mejorDescuentoPct = 50; nombrePromo = "Martes (50%)"; }
+        }
+
+        // Descuento estudiante, lunes a viernes
+        if (estudiante && dia >= 1 && dia <= 5) {
+            if (15 > mejorDescuentoPct) { mejorDescuentoPct = 15; nombrePromo = "Estudiante entre semana (15%)"; }
+        }
+
+        // Descuento miércoles si no hay otra promoción mejor
+        if (dia == 3) {
+            if (10 > mejorDescuentoPct) { mejorDescuentoPct = 10; nombrePromo = "Miércoles (10%)"; }
+        }
+
+        double montoDescuento = subtotal * (mejorDescuentoPct / 100.0);
+        double totalConDescuento = subtotal - montoDescuento;
+
+        // R7: Recargo IMAX en fin de semana (sobre el subtotal original)
+        double montoRecargo = 0;
+        if ((dia == 6 || dia == 7) && formato == 3) {
+            montoRecargo = subtotal * 0.10;
+        }
+
+        double totalFinal = totalConDescuento + montoRecargo;
+
+        // R8: Combo de cortesía
+        boolean combo = cantidad >= 4 && (estudiante || edad <= 17);
+
+        // ----------------- RESUMEN -----------------
+        System.out.println("\n--- Resumen de la compra ---");
+        System.out.println("Formato: " + nombreFormato(formato));
+        System.out.println("Precio unitario: $" + String.format("%.2f", precioUnitario));
+        System.out.println("Cantidad: " + cantidad);
+        System.out.println("Subtotal: $" + String.format("%.2f", subtotal));
+        System.out.println("Promoción aplicada: " + nombrePromo);
+        System.out.println("Descuento: -$" + String.format("%.2f", montoDescuento));
+        if (montoRecargo > 0) {
+            System.out.println("Recargo (IMAX fin de semana 10%): +$" + String.format("%.2f", montoRecargo));
+        }
+        System.out.println("TOTAL A PAGAR: $" + String.format("%.2f", totalFinal));
+        if (combo) {
+            System.out.println("¡Felicidades! Obtiene un combo pequeño de cortesía.");
+        }
+    }
+
+    // ----------------- MÉTODOS AUXILIARES -----------------
+
+    static double precioPorFormato(int formato) {
+        switch (formato) {
+            case 1: return 5.00;  // 2D
+            case 2: return 7.50;  // 3D
+            case 3: return 10.00; // IMAX
+            default: return 0;
+        }
+    }
+
+    static String nombreFormato(int formato) {
+        switch (formato) {
+            case 1: return "2D";
+            case 2: return "3D";
+            case 3: return "IMAX";
+            default: return "Desconocido";
+        }
+    }
+
+    static int leerEntero(String mensaje) {
+        System.out.print(mensaje);
+        while (!sc.hasNextInt()) {
+            System.out.print("Ingrese un número válido: ");
+            sc.next();
+        }
+        int valor = sc.nextInt();
+        sc.nextLine(); // limpiar buffer
+        return valor;
+    }
+
+    static String leerTexto(String mensaje) {
+        System.out.print(mensaje);
+        return sc.nextLine();
+    }
+}
